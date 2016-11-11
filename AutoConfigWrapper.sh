@@ -21,7 +21,7 @@ function check {
 	[ $error -ne 0 ] && echo "($line_number) error !!" && exit -1
 }
 
-function insert {
+function add_text {
 	[ $# -lt 4 ] && echo "Usage: $0  <edit_file>  <27>  <in_fil>  <30,33>" && exit -1
 
 	local edit_file=$1
@@ -43,7 +43,7 @@ function insert {
 	return 0
 }
 
-function insert_ifdef {
+function add_ifdef {
 	[ $# -lt 2 ] && echo "Usage: $0  <edit_file>  <27>" && exit -1
 
 	local edit_file=$1
@@ -56,7 +56,7 @@ function insert_ifdef {
 	return 0
 }
 
-function insert_else {
+function add_else {
 	[ $# -lt 2 ] && echo "Usage: $0  <edit_file>  <27>" && exit -1
 
 	local edit_file=$1
@@ -69,7 +69,7 @@ function insert_else {
 	return 0
 }
 
-function insert_endif {
+function add_endif {
 	[ $# -lt 2 ] && echo "Usage: $0  <edit_file>  <27>" && exit -1
 
 	local edit_file=$1
@@ -88,33 +88,29 @@ check $? $LINENO
 git apply $patch
 check $? $LINENO
 
-diff $org_file $in_file > $diff_file
-check `expr $? - 1` $LINENO
+diff $org_file $in_file | awk -f ../parse_diff.awk | sed -n '1!G;h;$p' > $diff_file
+check $? $LINENO
 
 cp $org_file $out_file
 check $? $LINENO
 
-insert_endif 	$out_file 33
-insert 		$out_file 33 $in_file 35
-insert_ifdef	$out_file 33
-
-insert_endif 	$out_file 31
-insert 		$out_file 31 $in_file 30,32
-insert_ifdef	$out_file 31
-
-insert_endif 	$out_file 27
-insert_else 	$out_file 23
-insert 		$out_file 23 $in_file 24,25
-insert_ifdef	$out_file 23
-
-insert_endif 	$out_file 18
-insert_else 	$out_file 17
-insert 		$out_file 17 $in_file 16,18
-insert_ifdef	$out_file 17
-
-insert_endif 	$out_file 5
-insert_else 	$out_file 3
-insert_ifdef	$out_file 3
+while IFS='' read -r line || [[ -n "$line" ]]; do
+	IFS=' ' read  op p1 p2 p3 <<< $line
+	if [ "a" == $op ]; then
+		add_endif 	$out_file $p1
+		add_text 	$out_file $p1 $in_file $p2
+		add_ifdef	$out_file $p1
+	elif [ "d" == $op ]; then
+		add_endif 	$out_file $p2
+		add_else 	$out_file $p1
+		add_ifdef	$out_file $p1
+	elif [ "c" == $op ]; then
+		add_endif 	$out_file $p2
+		add_else 	$out_file $p1
+		add_text 	$out_file $p1 $in_file $p3
+		add_ifdef	$out_file $p1
+	fi
+done < $diff_file
 
 mv $out_file $in_file
 check $? $LINENO
