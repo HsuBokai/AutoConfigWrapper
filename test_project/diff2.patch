@@ -1,8 +1,8 @@
 diff --git a/class.c b/class.c
-index 7e1ba13..a082c22 100644
+index 7e1ba13..b1c6371 100644
 --- a/class.c
 +++ b/class.c
-@@ -1,11 +1,8 @@
+@@ -1,35 +1,42 @@
 -#include <stdio.h>
 +#include <stdio.h> // add comment here
  #include <stdlib.h> // malloc
@@ -15,7 +15,10 @@ index 7e1ba13..a082c22 100644
  };
  
  static int push(Class* obj, const char c)
-@@ -15,21 +12,27 @@ static int push(Class* obj, const char c)
+ {
+ 	return -1;
++	
+ }
  
  static int peep(const Class* obj, char* c)
  {
@@ -35,6 +38,7 @@ index 7e1ba13..a082c22 100644
 -	obj->peep = peep;
 +
 +	obj->_begin = obj->_readBuf;
++
 +	*(obj->_begin) = 0;
 +
  	return obj;
@@ -42,10 +46,12 @@ index 7e1ba13..a082c22 100644
  
  void delete_Class(Class* obj) {
 +	int i = 0;
++	
 +	int j = 2;
 +	int k = 3;
  	free(obj);
  	obj = NULL;
 +	return;
++	
  }
  

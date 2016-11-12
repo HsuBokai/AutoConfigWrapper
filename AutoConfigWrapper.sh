@@ -9,6 +9,7 @@ patch=diff2.patch
 
 org_file=/tmp/org_file
 diff_file=/tmp/diff_file
+empty_line_file=/tmp/empty_line_file
 
 function check {
 	[ $# -lt 2 ] && echo "Usage: $0  <error>  <line_number>" && exit -1
@@ -110,6 +111,24 @@ check $? $LINENO
 
 git apply $patch
 check $? $LINENO
+
+diff $org_file $in_file > $diff_file
+check `expr $? - 1` $LINENO
+
+awk -f ../parse_empty.awk $diff_file > $empty_line_file
+check $? $LINENO
+
+for del_empty_line in `sed -n '1p' $empty_line_file`
+do
+	sed -i '' $del_empty_line'd' $org_file;
+	check $? $LINENO
+done
+
+for add_empty_line in `sed -n '2p' $empty_line_file`
+do
+	sed -i '' $add_empty_line'd' $in_file;
+	check $? $LINENO
+done
 
 diff $org_file $in_file | awk -f ../parse_diff.awk | sed -n '1!G;h;$p' > $diff_file
 check $? $LINENO
