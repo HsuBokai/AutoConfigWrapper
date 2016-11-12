@@ -5,7 +5,7 @@ set -x
 config=CONFIG_BOKAI_TEST
 
 in_file=class.c
-patch=diff.patch
+patch=diff2.patch
 out_file=out_file.c
 
 org_file=/tmp/org_file
@@ -21,7 +21,7 @@ function check {
 	[ $error -ne 0 ] && echo "($line_number) error !!" && exit -1
 }
 
-function add_text {
+function append_text {
 	[ $# -lt 4 ] && echo "Usage: $0  <edit_file>  <27>  <in_fil>  <30,33>" && exit -1
 
 	local edit_file=$1
@@ -33,51 +33,75 @@ function add_text {
 	local range=$1
 
 	local add_text=/tmp/add_text
-	
+	local temp_file=/tmp/temp_file
+
 	sed -n $range'p' $in_file > $add_text
 	check $? $LINENO
 
-	sed -i '' $line'r '$add_text $edit_file
-	check $? $LINENO
+	if [ 0 == $line ]; then
+		cat $add_text $edit_file > $temp_file
+		check $? $LINENO
+
+		mv $temp_file $edit_file
+		check $? $LINENO
+	else
+		sed -i '' $line'r '$add_text $edit_file
+		check $? $LINENO
+	fi
 
 	return 0
 }
 
-function add_ifdef {
+function append_ifdef {
 	[ $# -lt 2 ] && echo "Usage: $0  <edit_file>  <27>" && exit -1
 
 	local edit_file=$1
 	shift
 	local line=$1
 
-	sed -i '' $line'a\'$'\n#ifdef '$config$'\n' $edit_file
-	check $? $LINENO
+	if [ 0 == $line ]; then
+		sed -i '' '1i\'$'\n#ifdef '$config$'\n' $edit_file
+		check $? $LINENO
+	else
+		sed -i '' $line'a\'$'\n#ifdef '$config$'\n' $edit_file
+		check $? $LINENO
+	fi
 
 	return 0
 }
 
-function add_else {
+function append_else {
 	[ $# -lt 2 ] && echo "Usage: $0  <edit_file>  <27>" && exit -1
 
 	local edit_file=$1
 	shift
 	local line=$1
 
-	sed -i '' $line'a\'$'\n#else /* '$config' */'$'\n' $edit_file
-	check $? $LINENO
+	if [ 0 == $line ]; then
+		sed -i '' '1i\'$'\n#else /* '$config' */'$'\n' $edit_file
+		check $? $LINENO
+	else
+		sed -i '' $line'a\'$'\n#else /* '$config' */'$'\n' $edit_file
+		check $? $LINENO
+	fi
 
 	return 0
 }
 
-function add_endif {
+function append_endif {
 	[ $# -lt 2 ] && echo "Usage: $0  <edit_file>  <27>" && exit -1
 
 	local edit_file=$1
 	shift
 	local line=$1
 
-	sed -i '' $line'a\'$'\n#endif /* '$config' */'$'\n' $edit_file
-	check $? $LINENO
+	if [ 0 == $line ]; then
+		sed -i '' '1i\'$'\n#endif /* '$config' */'$'\n' $edit_file
+		check $? $LINENO
+	else
+		sed -i '' $line'a\'$'\n#endif /* '$config' */'$'\n' $edit_file
+		check $? $LINENO
+	fi
 
 	return 0
 }
@@ -97,18 +121,18 @@ check $? $LINENO
 while IFS='' read -r line || [[ -n "$line" ]]; do
 	IFS=' ' read  op p1 p2 p3 <<< $line
 	if [ "a" == $op ]; then
-		add_endif 	$out_file $p1
-		add_text 	$out_file $p1 $in_file $p2
-		add_ifdef	$out_file $p1
+		append_endif 	$out_file $p1
+		append_text 	$out_file $p1 $in_file $p2
+		append_ifdef	$out_file $p1
 	elif [ "d" == $op ]; then
-		add_endif 	$out_file $p2
-		add_else 	$out_file $p1
-		add_ifdef	$out_file $p1
+		append_endif 	$out_file $p2
+		append_else 	$out_file $p1
+		append_ifdef	$out_file $p1
 	elif [ "c" == $op ]; then
-		add_endif 	$out_file $p2
-		add_else 	$out_file $p1
-		add_text 	$out_file $p1 $in_file $p3
-		add_ifdef	$out_file $p1
+		append_endif 	$out_file $p2
+		append_else 	$out_file $p1
+		append_text 	$out_file $p1 $in_file $p3
+		append_ifdef	$out_file $p1
 	fi
 done < $diff_file
 
