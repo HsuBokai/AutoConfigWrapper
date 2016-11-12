@@ -6,7 +6,6 @@ config=CONFIG_BOKAI_TEST
 
 in_file=class.c
 patch=diff2.patch
-out_file=out_file.c
 
 org_file=/tmp/org_file
 diff_file=/tmp/diff_file
@@ -115,28 +114,25 @@ check $? $LINENO
 diff $org_file $in_file | awk -f ../parse_diff.awk | sed -n '1!G;h;$p' > $diff_file
 check $? $LINENO
 
-cp $org_file $out_file
-check $? $LINENO
-
 while IFS='' read -r line || [[ -n "$line" ]]; do
 	IFS=' ' read  op p1 p2 p3 <<< $line
 	if [ "a" == $op ]; then
-		append_endif 	$out_file $p1
-		append_text 	$out_file $p1 $in_file $p2
-		append_ifdef	$out_file $p1
+		append_endif 	$org_file $p1
+		append_text 	$org_file $p1 $in_file $p2
+		append_ifdef	$org_file $p1
 	elif [ "d" == $op ]; then
-		append_endif 	$out_file $p2
-		append_else 	$out_file $p1
-		append_ifdef	$out_file $p1
+		append_endif 	$org_file $p2
+		append_else 	$org_file $p1
+		append_ifdef	$org_file $p1
 	elif [ "c" == $op ]; then
-		append_endif 	$out_file $p2
-		append_else 	$out_file $p1
-		append_text 	$out_file $p1 $in_file $p3
-		append_ifdef	$out_file $p1
+		append_endif 	$org_file $p2
+		append_else 	$org_file $p1
+		append_text 	$org_file $p1 $in_file $p3
+		append_ifdef	$org_file $p1
 	fi
 done < $diff_file
 
-mv $out_file $in_file
+mv $org_file $in_file
 check $? $LINENO
 
 exit 0;
