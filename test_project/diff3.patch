@@ -1,0 +1,42 @@
+diff --git a/class.c b/class.c
+index 7e1ba13..7a2ad9d 100644
+--- a/class.c
++++ b/class.c
+@@ -1,8 +1,6 @@
+ #include <stdio.h>
+ #include <stdlib.h> // malloc
+-
+-#include "class.h"
+-
++int test = true;
+ struct _Private {
+ 	char _readBuf[READ_BUF_SIZE];
+ 	char* _begin;
+@@ -12,13 +10,10 @@ static int push(Class* obj, const char c)
+ {
+ 	return -1;
+ }
+-
+-static int peep(const Class* obj, char* c)
++static int peep(const Class* obj, int* c)
+ {
+ 	return 0;
+ }
+-
+-
+ Class* new_Class() {
+ 	Class* obj = (Class*) malloc(sizeof(Class));
+ 	//obj->_begin = obj->_readBuf;
+@@ -27,9 +22,8 @@ Class* new_Class() {
+ 	obj->peep = peep;
+ 	return obj;
+ }
+-
+-void delete_Class(Class* obj) {
++int delete_Class(Class* obj) {
+ 	free(obj);
+ 	obj = NULL;
+-}
+-
++	return 3;
++};

@@ -5,7 +5,7 @@ set -x
 config=CONFIG_BOKAI_TEST
 
 in_file=class.c
-patch=diff2.patch
+patch=diff3.patch
 
 org_file=/tmp/org_file
 diff_file=/tmp/diff_file
@@ -123,6 +123,17 @@ do
 	sed -i '' $add_empty_line'd' $in_file;
 	check $? $LINENO
 done
+
+diff $org_file $in_file > $diff_file
+check `expr $? - 1` $LINENO
+
+awk -f ../del_empty.awk $diff_file > $empty_line_file
+check $? $LINENO
+
+while IFS='' read -r line || [[ -n "$line" ]]; do
+	IFS=' ' read  del_line add_line <<< $line
+	append_text $in_file $add_line $org_file $del_line
+done < $empty_line_file
 
 diff $org_file $in_file | awk -f ../parse_diff.awk | sed -n '1!G;h;$p' > $diff_file
 check $? $LINENO
