@@ -1,15 +1,11 @@
 #!/bin/bash
 
-set -x
+#set -x
 
 config=CONFIG_BOKAI_TEST
 
 in_file=class.c
-patch=diff3.patch
-
-org_file=/tmp/org_file
-diff_file=/tmp/diff_file
-empty_line_file=/tmp/empty_line_file
+patch=diff2.patch
 
 function check {
 	[ $# -lt 2 ] && echo "Usage: $0  <error>  <line_number>" && exit -1
@@ -106,57 +102,105 @@ function append_endif {
 	return 0
 }
 
-cp $in_file $org_file
+function remove_additional_empty_line {
+	[ $# -lt 2 ] && echo "Usage: $0  <edit_file>  <org_file>" && exit -1
+
+	local edit_file=$1
+	shift
+	local org_file=$1
+
+	local diff_file=/tmp/diff_file
+	local empty_line_file=/tmp/empty_line_file
+
+	diff $org_file $edit_file > $diff_file
+	check `expr $? - 1` $LINENO
+
+	awk -f ../add_empty.awk $diff_file > $empty_line_file
+	check $? $LINENO
+
+	for add_empty_line in `cat $empty_line_file`
+	do
+		sed -i '' $add_empty_line'd' $edit_file
+		check $? $LINENO
+	done
+
+	return 0
+}
+
+function append_deletional_empty_line {
+	[ $# -lt 2 ] && echo "Usage: $0  <edit_file>  <org_file>" && exit -1
+
+	local edit_file=$1
+	shift
+	local org_file=$1
+
+	local diff_file=/tmp/diff_file
+	local empty_line_file=/tmp/empty_line_file
+
+	diff $org_file $edit_file > $diff_file
+	check `expr $? - 1` $LINENO
+
+	awk -f ../del_empty.awk $diff_file > $empty_line_file
+	check $? $LINENO
+
+	while IFS='' read -r line || [[ -n "$line" ]]; do
+		IFS=' ' read  del_line add_line <<< $line
+		append_text $edit_file $add_line $org_file $del_line
+	done < $empty_line_file
+
+	return 0
+}
+
+function append_config {
+	[ $# -lt 2 ] && echo "Usage: $0  <modified_file>  <org_file>" && exit -1
+
+	local modified_file=$1
+	shift
+	local org_file=$1
+
+	local diff_file=/tmp/diff_file
+	local modify_cmd=/tmp/modify_cmd
+
+	diff $org_file $modified_file > $diff_file
+	check `expr $? - 1` $LINENO
+
+	awk -f ../parse_diff.awk $diff_file | sed -n '1!G;h;$p' > $modify_cmd
+	check $? $LINENO
+
+	while IFS='' read -r line || [[ -n "$line" ]]; do
+		IFS=' ' read  op p1 p2 p3 <<< $line
+		if [ "a" == $op ]; then
+			append_endif 	$org_file $p1
+			append_text 	$org_file $p1 $in_file $p2
+			append_ifdef	$org_file $p1
+		elif [ "d" == $op ]; then
+			append_endif 	$org_file $p2
+			append_else 	$org_file $p1
+			append_ifdef	$org_file $p1
+		elif [ "c" == $op ]; then
+			append_endif 	$org_file $p2
+			append_else 	$org_file $p1
+			append_text 	$org_file $p1 $in_file $p3
+			append_ifdef	$org_file $p1
+		fi
+	done < $modify_cmd
+
+	return 0
+}
+
+cp $in_file /tmp/org_file
 check $? $LINENO
 
 git apply $patch
 check $? $LINENO
 
-diff $org_file $in_file > $diff_file
-check `expr $? - 1` $LINENO
+remove_additional_empty_line $in_file /tmp/org_file
 
-awk -f ../add_empty.awk $diff_file > $empty_line_file
-check $? $LINENO
+append_deletional_empty_line $in_file /tmp/org_file
 
-for add_empty_line in `cat $empty_line_file`
-do
-	sed -i '' $add_empty_line'd' $in_file;
-	check $? $LINENO
-done
+append_config $in_file /tmp/org_file
 
-diff $org_file $in_file > $diff_file
-check `expr $? - 1` $LINENO
-
-awk -f ../del_empty.awk $diff_file > $empty_line_file
-check $? $LINENO
-
-while IFS='' read -r line || [[ -n "$line" ]]; do
-	IFS=' ' read  del_line add_line <<< $line
-	append_text $in_file $add_line $org_file $del_line
-done < $empty_line_file
-
-diff $org_file $in_file | awk -f ../parse_diff.awk | sed -n '1!G;h;$p' > $diff_file
-check $? $LINENO
-
-while IFS='' read -r line || [[ -n "$line" ]]; do
-	IFS=' ' read  op p1 p2 p3 <<< $line
-	if [ "a" == $op ]; then
-		append_endif 	$org_file $p1
-		append_text 	$org_file $p1 $in_file $p2
-		append_ifdef	$org_file $p1
-	elif [ "d" == $op ]; then
-		append_endif 	$org_file $p2
-		append_else 	$org_file $p1
-		append_ifdef	$org_file $p1
-	elif [ "c" == $op ]; then
-		append_endif 	$org_file $p2
-		append_else 	$org_file $p1
-		append_text 	$org_file $p1 $in_file $p3
-		append_ifdef	$org_file $p1
-	fi
-done < $diff_file
-
-mv $org_file $in_file
+mv /tmp/org_file $in_file
 check $? $LINENO
 
 exit 0;
