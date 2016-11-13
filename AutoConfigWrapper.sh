@@ -2,10 +2,8 @@
 
 #set -x
 
-config=CONFIG_BOKAI_TEST
-
-in_file=class.c
-patch=diff2.patch
+[ $# -lt 1 ] && echo "Usage: $0 <config.sh>" && exit -1
+source $1
 
 function check {
 	[ $# -lt 2 ] && echo "Usage: $0  <error>  <line_number>" && exit -1
@@ -115,11 +113,10 @@ function remove_additional_empty_line {
 	diff $org_file $edit_file > $diff_file
 	check `expr $? - 1` $LINENO
 
-	awk -f ../add_empty.awk $diff_file > $empty_line_file
+	awk -f add_empty.awk $diff_file > $empty_line_file
 	check $? $LINENO
 
-	for add_empty_line in `cat $empty_line_file`
-	do
+	for add_empty_line in `cat $empty_line_file`; do
 		sed -i '' $add_empty_line'd' $edit_file
 		check $? $LINENO
 	done
@@ -140,7 +137,7 @@ function append_deletional_empty_line {
 	diff $org_file $edit_file > $diff_file
 	check `expr $? - 1` $LINENO
 
-	awk -f ../del_empty.awk $diff_file > $empty_line_file
+	awk -f del_empty.awk $diff_file > $empty_line_file
 	check $? $LINENO
 
 	while IFS='' read -r line || [[ -n "$line" ]]; do
@@ -164,14 +161,14 @@ function append_config {
 	diff $org_file $modified_file > $diff_file
 	check `expr $? - 1` $LINENO
 
-	awk -f ../parse_diff.awk $diff_file | sed -n '1!G;h;$p' > $modify_cmd
+	awk -f parse_diff.awk $diff_file | sed -n '1!G;h;$p' > $modify_cmd
 	check $? $LINENO
 
 	while IFS='' read -r line || [[ -n "$line" ]]; do
 		IFS=' ' read  op p1 p2 p3 <<< $line
 		if [ "a" == $op ]; then
 			append_endif 	$org_file $p1
-			append_text 	$org_file $p1 $in_file $p2
+			append_text 	$org_file $p1 $modified_file $p2
 			append_ifdef	$org_file $p1
 		elif [ "d" == $op ]; then
 			append_endif 	$org_file $p2
@@ -180,7 +177,7 @@ function append_config {
 		elif [ "c" == $op ]; then
 			append_endif 	$org_file $p2
 			append_else 	$org_file $p1
-			append_text 	$org_file $p1 $in_file $p3
+			append_text 	$org_file $p1 $modified_file $p3
 			append_ifdef	$org_file $p1
 		fi
 	done < $modify_cmd
@@ -188,19 +185,31 @@ function append_config {
 	return 0
 }
 
-cp $in_file /tmp/org_file
+[[ -e /tmp/$project_folder ]] && rm -rf /tmp/$project_folder
+cp -r $project_folder /tmp/
 check $? $LINENO
+
+cd /tmp/$project_folder
+check $? $LINENO
+
+[[ $(git diff) ]] && echo "Please clean your git diff in your project!" && exit -1
 
 git apply $patch
 check $? $LINENO
 
-remove_additional_empty_line $in_file /tmp/org_file
-
-append_deletional_empty_line $in_file /tmp/org_file
-
-append_config $in_file /tmp/org_file
-
-mv /tmp/org_file $in_file
+cd -
 check $? $LINENO
+
+for file in $files; do
+	org_file=$project_folder/$file
+	in_file=/tmp/$project_folder/$file
+
+	[[ ! -f $org_file ]] && echo $org_file' does NOT exist!' && exit -1
+	[[ ! -f $in_file ]] && echo $in_file' does NOT exist!' && exit -1
+
+	remove_additional_empty_line $in_file $org_file
+	append_deletional_empty_line $in_file $org_file
+	append_config $in_file $org_file
+done
 
 exit 0;
