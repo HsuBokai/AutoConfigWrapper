@@ -39,7 +39,7 @@ function append_text {
 		mv $temp_file $edit_file
 		check $? $LINENO
 	else
-		sed -i '' $line'r '$add_text $edit_file
+		sed -i $line'r '$add_text $edit_file
 		check $? $LINENO
 	fi
 
@@ -54,10 +54,10 @@ function append_ifdef {
 	local line=$1
 
 	if [ 0 == $line ]; then
-		sed -i '' '1i\'$'\n#ifdef '$config$'\n' $edit_file
+		sed -i '1i\'$'\n#ifdef '$config$'\n' $edit_file
 		check $? $LINENO
 	else
-		sed -i '' $line'a\'$'\n#ifdef '$config$'\n' $edit_file
+		sed -i $line'a\'$'\n#ifdef '$config$'\n' $edit_file
 		check $? $LINENO
 	fi
 
@@ -72,10 +72,10 @@ function append_else {
 	local line=$1
 
 	if [ 0 == $line ]; then
-		sed -i '' '1i\'$'\n#else /* '$config' */'$'\n' $edit_file
+		sed -i '1i\'$'\n#else /* '$config' */'$'\n' $edit_file
 		check $? $LINENO
 	else
-		sed -i '' $line'a\'$'\n#else /* '$config' */'$'\n' $edit_file
+		sed -i $line'a\'$'\n#else /* '$config' */'$'\n' $edit_file
 		check $? $LINENO
 	fi
 
@@ -90,10 +90,10 @@ function append_endif {
 	local line=$1
 
 	if [ 0 == $line ]; then
-		sed -i '' '1i\'$'\n#endif /* '$config' */'$'\n' $edit_file
+		sed -i '1i\'$'\n#endif /* '$config' */'$'\n' $edit_file
 		check $? $LINENO
 	else
-		sed -i '' $line'a\'$'\n#endif /* '$config' */'$'\n' $edit_file
+		sed -i $line'a\'$'\n#endif /* '$config' */'$'\n' $edit_file
 		check $? $LINENO
 	fi
 
@@ -117,7 +117,7 @@ function remove_additional_empty_line {
 	check $? $LINENO
 
 	for add_empty_line in `cat $empty_line_file`; do
-		sed -i '' $add_empty_line'd' $edit_file
+		sed -i $add_empty_line'd' $edit_file
 		check $? $LINENO
 	done
 
