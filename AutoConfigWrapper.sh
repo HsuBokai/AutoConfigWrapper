@@ -186,7 +186,7 @@ function append_config {
 }
 
 [[ -e /tmp/$project_folder ]] && rm -rf /tmp/$project_folder
-cp -r $project_folder /tmp/
+cp -r $project_path/$project_folder /tmp/
 check $? $LINENO
 
 cd /tmp/$project_folder
@@ -201,7 +201,7 @@ cd -
 check $? $LINENO
 
 for file in $files; do
-	org_file=$project_folder/$file
+	org_file=$project_path/$project_folder/$file
 	in_file=/tmp/$project_folder/$file
 
 	[[ ! -f $org_file ]] && echo $org_file' does NOT exist!' && exit -1
